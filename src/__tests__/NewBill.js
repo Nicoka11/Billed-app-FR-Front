@@ -2,11 +2,10 @@
  * @jest-environment jsdom
  */
 
-import { screen, fireEvent, waitFor } from "@testing-library/dom";
+import { screen, fireEvent } from "@testing-library/dom";
 import userEvent from "@testing-library/user-event";
 import { ROUTES } from "../constants/routes";
 
-import { bills } from "../fixtures/bills.js";
 import { localStorageMock } from "../__mocks__/localStorage";
 import mockStore from "../__mocks__/store";
 
@@ -96,7 +95,7 @@ describe("Given I am connected as an employee", () => {
       });
     });
 
-    // Integration tests of the data (newBill) posting (API POST call)
+    // Test d'integration NewBill POST.
     const testBill = {
       id: "njl52ho4oj98jnklA24bk",
       status: "refused",

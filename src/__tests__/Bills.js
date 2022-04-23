@@ -9,6 +9,7 @@ import { bills } from "../fixtures/bills.js";
 import { ROUTES_PATH } from "../constants/routes.js";
 import { localStorageMock } from "../__mocks__/localStorage.js";
 import mockStore from "../__mocks__/store";
+import { formatDate, formatStatus } from "../app/format.js";
 
 import router from "../app/Router.js";
 import Bills from "../containers/Bills";
@@ -44,15 +45,6 @@ describe("Given I am connected as an employee", () => {
       const windowIcon = screen.getByTestId("icon-window");
       //to-do write expect expression
       expect(windowIcon.classList.toString()).toEqual("active-icon");
-    });
-    test("Then the bills should be shown in a list", async () => {
-      await waitFor(() => screen.getByTestId("tbody"));
-      window.onNavigate(ROUTES_PATH.Bills);
-
-      expect(screen.getByTestId("tbody")).toBeInTheDocument();
-      expect(screen.getByText("Repas")).toBeTruthy();
-      expect(screen.getByText("Hôtel du centre ville")).toBeTruthy();
-      expect(screen.getByText("Vol Paris Marseille")).toBeTruthy();
     });
     test("Then bills should be ordered from earliest to latest", () => {
       const dates = screen
@@ -121,6 +113,56 @@ describe("Given I am connected as an employee", () => {
     await waitFor(() => screen.getByText("Mes notes de frais"));
     const displayedBills = screen.getAllByTestId("icon-eye");
     expect(displayedBills).toBeTruthy();
+  });
+  describe("GET integration tests", () => {
+    it("if store, should display bills with right date & status format", async () => {
+      const billsContainer = new Bills({
+        document,
+        onNavigate,
+        store: mockStore,
+        localStorage: window.localStorage,
+      });
+      const spyGetList = jest.spyOn(billsContainer, "getBills");
+      const data = await billsContainer.getBills();
+      const mockBills = await mockStore.bills().list();
+      const mockDate = mockBills[0].date;
+      const mockStatus = mockBills[0].status;
+
+      expect(spyGetList).toHaveBeenCalledTimes(1);
+      expect(data[0].date).toEqual(formatDate(mockDate));
+      expect(data[0].status).toEqual(formatStatus(mockStatus));
+    });
+
+    it('if corrupted store, should console.log(error) & return {date: "hello", status: undefined}', async () => {
+      const corruptedStore = {
+        bills() {
+          return {
+            list() {
+              return Promise.resolve([
+                {
+                  id: "54sd65f45f4sfsd",
+                  vat: "40",
+                  date: "hello",
+                  status: "kia",
+                },
+              ]);
+            },
+          };
+        },
+      };
+      const billsContainer = new Bills({
+        document,
+        onNavigate,
+        store: corruptedStore,
+        localStorage: window.localStorage,
+      });
+      const spyConsoleLog = jest.spyOn(console, "log");
+      const data = await billsContainer.getBills();
+
+      expect(spyConsoleLog).toHaveBeenCalled();
+      expect(data[0].date).toEqual("hello");
+      expect(data[0].status).toEqual(undefined);
+    });
   });
   describe("When an error occurs on API", () => {
     beforeEach(() => {
