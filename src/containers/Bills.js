@@ -59,7 +59,7 @@ export default class Bills {
               };
             }
           });
-          console.log("length", bills);
+          // console.log("length", bills);
           return bills;
         });
     }

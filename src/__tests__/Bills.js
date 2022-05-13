@@ -3,6 +3,7 @@
  */
 
 import { screen, waitFor } from "@testing-library/dom";
+import { toHaveClass } from "@testing-library/jest-dom";
 import userEvent from "@testing-library/user-event";
 import BillsUI from "../views/BillsUI.js";
 import { bills } from "../fixtures/bills.js";
@@ -10,13 +11,17 @@ import { ROUTES_PATH } from "../constants/routes.js";
 import { localStorageMock } from "../__mocks__/localStorage.js";
 import mockStore from "../__mocks__/store";
 import { formatDate, formatStatus } from "../app/format.js";
+import { ROUTES } from "../constants/routes.js";
 
 import router from "../app/Router.js";
 import Bills from "../containers/Bills";
 
+const onNavigate = (pathname) => {
+  document.body.innerHTML = ROUTES({ pathname });
+};
+
 describe("Given I am connected as an employee", () => {
   describe("When I am on Bills Page", () => {
-    let billsContainer;
     beforeEach(() => {
       Object.defineProperty(window, "localStorage", {
         value: localStorageMock,
@@ -31,12 +36,6 @@ describe("Given I am connected as an employee", () => {
       root.setAttribute("id", "root");
       document.body.append(root);
       router();
-      billsContainer = new Bills({
-        document,
-        onNavigate: window.onNavigate,
-        mockStore,
-        localStorage: window.localStorage,
-      });
       document.body.innerHTML = BillsUI({ data: bills });
     });
     test("Then bill icon in vertical layout should be highlighted", async () => {
@@ -44,7 +43,7 @@ describe("Given I am connected as an employee", () => {
       await waitFor(() => screen.getByTestId("icon-window"));
       const windowIcon = screen.getByTestId("icon-window");
       //to-do write expect expression
-      expect(windowIcon.classList.toString()).toEqual("active-icon");
+      expect(windowIcon).toHaveClass("active-icon");
     });
     test("Then bills should be ordered from earliest to latest", () => {
       const dates = screen
@@ -56,66 +55,54 @@ describe("Given I am connected as an employee", () => {
       const datesSorted = [...dates].sort(antiChrono);
       expect(dates).toEqual(datesSorted);
     });
-    describe("When I click on the NewBill button", () => {
-      test("Then the new bill form page should be rendered", async () => {
-        const newBillBtn = screen.getByTestId("btn-new-bill");
-
-        window.onNavigate = jest.fn();
-        const formTrigger = jest.fn(billsContainer.handleClickNewBill);
-
-        newBillBtn.addEventListener("click", formTrigger);
-        userEvent.click(newBillBtn);
-
-        expect(formTrigger).toHaveBeenCalled();
-        window.onNavigate(ROUTES_PATH.NewBill);
-        await waitFor(() => screen.getByTestId("icon-mail"));
-        expect(
-          screen.getByTestId("icon-mail").classList.contains("active-icon")
-        ).toBeTruthy();
+  });
+  describe("When I click on the NewBill button", () => {
+    test("Then the new bill form page should be rendered", () => {
+      const billsContainer = new Bills({
+        document,
+        onNavigate,
+        localStorage: window.localStorage,
       });
+      const handleClickNewBillMethod = jest.fn(
+        billsContainer.handleClickNewBill
+      );
+      const buttonNewBill = screen.getByTestId("btn-new-bill");
+      handleClickNewBillMethod(buttonNewBill);
+      userEvent.click(buttonNewBill);
+
+      expect(handleClickNewBillMethod).toHaveBeenCalled();
+      expect(screen.getByText("Envoyer une note de frais")).toBeTruthy();
     });
-    test("Then clicking on the eye of a bill should show it in a modal", () => {
-      $.fn.modal = jest.fn();
 
-      const iconEyeBtn = screen.getAllByTestId("icon-eye")[0];
-      const modalTrigger = jest.fn(billsContainer.handleClickIconEye);
-      iconEyeBtn.addEventListener("click", () => {
-        modalTrigger(iconEyeBtn);
-      });
-      userEvent.click(iconEyeBtn);
-      expect(modalTrigger).toHaveBeenCalled();
-      expect(modalTrigger).toHaveBeenCalledTimes(1);
-      expect($.fn.modal).toHaveBeenCalledWith("show");
+    test("Then should change icon1 & icon2 className navigating to NewBill", () => {
+      window.onNavigate(ROUTES_PATH.NewBill);
+      const icon1 = screen.getByTestId("icon-window");
+      const icon2 = screen.getByTestId("icon-mail");
 
-      const modal = screen.getByTestId("modaleFile");
-      const modalTitle = screen.getByText("Justificatif");
-      const modalImageUrl = iconEyeBtn
-        .getAttribute("data-bill-url")
-        .split("?")[0];
-
-      expect(modalTitle).toBeTruthy();
-      expect(modal).toBeTruthy();
-      expect(modal.innerHTML.includes(modalImageUrl)).toBeTruthy();
+      expect(icon1).not.toHaveClass("active-icon");
+      expect(icon2).toHaveClass("active-icon");
     });
   });
 
   // Test d'integration GET Bills
-  test("fetches bills from mock API GET", async () => {
-    Object.defineProperty(window, "localStorage", {
-      value: localStorageMock,
-    });
-    window.localStorage.setItem(
-      "user",
-      JSON.stringify({
-        type: "Employee",
-      })
-    );
-    await waitFor(() => screen.getByText("Mes notes de frais"));
-    const displayedBills = screen.getAllByTestId("icon-eye");
-    expect(displayedBills).toBeTruthy();
-  });
   describe("GET integration tests", () => {
-    it("if store, should display bills with right date & status format", async () => {
+    test("fetches bills from mock API GET", async () => {
+      window.onNavigate(ROUTES_PATH.Bills);
+      document.body.innerHTML = BillsUI({ data: bills });
+      Object.defineProperty(window, "localStorage", {
+        value: localStorageMock,
+      });
+      window.localStorage.setItem(
+        "user",
+        JSON.stringify({
+          type: "Employee",
+        })
+      );
+      await waitFor(() => screen.getByText("Mes notes de frais"));
+      const displayedBills = screen.getAllByTestId("icon-eye");
+      expect(displayedBills).toBeTruthy();
+    });
+    test("Then it should display bills with date & status", async () => {
       const billsContainer = new Bills({
         document,
         onNavigate,
@@ -133,17 +120,17 @@ describe("Given I am connected as an employee", () => {
       expect(data[0].status).toEqual(formatStatus(mockStatus));
     });
 
-    it('if corrupted store, should console.log(error) & return {date: "hello", status: undefined}', async () => {
+    test('Then if the store is corrupted,it should console.log(error) & return {date: "nicolas", status: undefined}', async () => {
       const corruptedStore = {
         bills() {
           return {
             list() {
               return Promise.resolve([
                 {
-                  id: "54sd65f45f4sfsd",
+                  id: "29047s289f6784pg",
                   vat: "40",
-                  date: "hello",
-                  status: "kia",
+                  date: "nicolas",
+                  status: "dope",
                 },
               ]);
             },
@@ -152,7 +139,7 @@ describe("Given I am connected as an employee", () => {
       };
       const billsContainer = new Bills({
         document,
-        onNavigate,
+        onNavigate: window.onNavigate,
         store: corruptedStore,
         localStorage: window.localStorage,
       });
@@ -160,7 +147,7 @@ describe("Given I am connected as an employee", () => {
       const data = await billsContainer.getBills();
 
       expect(spyConsoleLog).toHaveBeenCalled();
-      expect(data[0].date).toEqual("hello");
+      expect(data[0].date).toEqual("nicolas");
       expect(data[0].status).toEqual(undefined);
     });
   });
