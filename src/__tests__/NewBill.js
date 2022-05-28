@@ -96,34 +96,20 @@ describe("Given I am connected as an employee", () => {
     });
 
     // Test d'integration NewBill POST.
-    const testBill = {
-      id: "njl52ho4oj98jnklA24bk",
-      status: "refused",
-      pct: 20,
-      amount: 200,
-      email: "a@a",
-      name: "test-test",
-      vat: "25",
-      fileName: "preview-facture-free-201801-pdf-1.jpg",
-      date: "2022-02-02",
-      commentAdmin: "facture de test",
-      commentary: "Ceci est un superbe test",
-      type: "fast-food",
-      fileUrl:
-        "https://test.storage.tld/v0/b/billable-677b6.a…f-1.jpg?alt=media&token=4df6ed2c-12c8-42a2-b013-346c1346f732",
-    };
 
     describe("When I submit a new bill", () => {
       test("Then the newBill should be posted", async () => {
+        const testBill = await mockStore.bills().test()
         const spy = jest.spyOn(mockStore, "bills");
         const response = await mockStore.bills().create(testBill);
         expect(spy).toHaveBeenCalledTimes(1);
         expect(response.length).toBe(5);
         expect(response.pop().id).toBe(testBill.id);
       });
-
+      
       describe("When the API call fails with a 404 error message", () => {
         test("Then a 404 error message should be displayed", async () => {
+          const testBill = await mockStore.bills().test()
           mockStore.bills.mockImplementationOnce(() => {
             return {
               update: () => {
@@ -138,15 +124,16 @@ describe("Given I am connected as an employee", () => {
           } catch (err) {
             response = err;
           }
-
+          
           document.body.innerHTML = BillsUI({ error: response });
           const message = screen.getByText(/Erreur 404/);
           expect(message).toBeTruthy();
         });
       });
-
+      
       describe("When the API call fails with a 500 error message", () => {
         test("Then a 500 error message should be displayed", async () => {
+          const testBill = await mockStore.bills().test()
           mockStore.bills.mockImplementationOnce(() => {
             return {
               update: () => {

@@ -68,6 +68,24 @@ const mockedBills = {
       },
     ]);
   },
+  test() {
+    return Promise.resolve({
+      id: "njl52ho4oj98jnklA24bk",
+      status: "refused",
+      pct: 20,
+      amount: 200,
+      email: "a@a",
+      name: "test-test",
+      vat: "25",
+      fileName: "preview-facture-free-201801-pdf-1.jpg",
+      date: "2022-02-02",
+      commentAdmin: "facture de test",
+      commentary: "Ceci est un superbe test",
+      type: "fast-food",
+      fileUrl:
+        "https://test.storage.tld/v0/b/billable-677b6.a…f-1.jpg?alt=media&token=4df6ed2c-12c8-42a2-b013-346c1346f732",
+    })
+  },
 
   async create(bill) {
     const initialBills = await this.list();
@@ -96,6 +114,5 @@ const mockedBills = {
 export default {
   bills() {
     return mockedBills;
-    //return {}
   },
 };

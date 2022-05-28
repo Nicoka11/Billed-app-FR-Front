@@ -144,7 +144,7 @@ export default class {
     if (this.index === undefined || this.index !== index) this.index = index;
     const currentBills = filteredBills(bills, getStatus(this.index));
     if (this.counter % 2 === 0) {
-      console.log(e.target)
+      console.log(e.target);
       $(`#arrow-icon${this.index}`).css({ transform: "rotate(0deg)" });
       $(`#status-bills-container${this.index}`).html(
         cards(filteredBills(bills, getStatus(this.index)))
